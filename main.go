@@ -2,7 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"net/http"
+
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/bmizerany/pat"
 )
 
 var musicDB *sql.DB
@@ -21,6 +24,18 @@ func addRecord(artist string, album string, name string, uri string) {
 	statement.Exec(artist, album, name, uri)
 }
 
+func insert(w http.ResponseWriter, r *http.Request) {
+	artist, artistOk := r.URL.Query()["artist"]
+	album, albumOk := r.URL.Query()["album"]
+	name, nameOk := r.URL.Query()["name"]
+
+	_ = artistOk
+	_ = albumOk
+	_ = nameOk
+
+	addRecord(artist[0], album[0], name[0], "")
+}
+
 func main() {
 	db, err := sql.Open("sqlite3", "./tracks.db")
 	defer db.Close()
@@ -33,5 +48,11 @@ func main() {
 		album TEXT, name TEXT, uri TEXT, time CURRENT_TIMESTAMP)`)
 	statement.Exec()
 
-	addRecord("cool_artist", "cool_album", "cool_name", "uri://cooluri")
+	r := pat.New()
+	r.Post("/tracks", http.HandlerFunc(insert))
+
+	http.Handle("/", r)
+	
+	httpErr := http.ListenAndServe(":6789", nil)
+	checkErr(httpErr)
 }
