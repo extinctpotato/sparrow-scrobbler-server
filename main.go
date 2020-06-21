@@ -147,9 +147,9 @@ func main() {
 	statement.Exec()
 
 	r := pat.New()
-	r.Post("/tracks", http.HandlerFunc(insert))
-	r.Get("/tracks", http.HandlerFunc(getAllPaged))
-	r.Get("/tracks/:id", http.HandlerFunc(getById))
+	r.Post("/api/tracks", http.HandlerFunc(insert))
+	r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
+	r.Get("/api/tracks/:id", http.HandlerFunc(getById))
 
 	http.Handle("/", r)
 	
