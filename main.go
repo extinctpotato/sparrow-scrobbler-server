@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/bmizerany/pat"
@@ -29,31 +30,24 @@ func checkErr(err error) {
 	}
 }
 
-func addRecord(artist string, album string, name string, uri string) {
+/* Pure SQLite-related functions */
+
+func addRecord(artist string, album string, name string, uri string) int64 {
 	statement, err := musicDB.Prepare(
 		`INSERT INTO music (artist, album, name, uri, time)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`)
 	checkErr(err)
-	statement.Exec(artist, album, name, uri)
+
+	result, resultErr := statement.Exec(artist, album, name, uri)
+	checkErr(resultErr)
+
+	id, idErr := result.LastInsertId()
+	checkErr(idErr)
+
+	return id
 }
 
-func insert(w http.ResponseWriter, r *http.Request) {
-	artist, artistOk := r.URL.Query()["artist"]
-	album, albumOk := r.URL.Query()["album"]
-	name, nameOk := r.URL.Query()["name"]
-
-	_ = artistOk
-	_ = albumOk
-	_ = nameOk
-
-	addRecord(artist[0], album[0], name[0], "")
-}
-
-func getById(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get(":id")
-
-	fmt.Println("ID:", id)
-
+func idToJson(id string) string {
 	statement, stmErr := musicDB.Prepare("SELECT * FROM music WHERE id = ?")
 	checkErr(stmErr)
 
@@ -65,14 +59,42 @@ func getById(w http.ResponseWriter, r *http.Request) {
 		rows.Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added)
 	}
 
-	fmt.Println(track)
-
 	jsonB, errMarshal := json.Marshal(track)
-
 	checkErr(errMarshal)
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, "%s", string(jsonB))
+
+	return string(jsonB)
 }
+
+/* REST-related functions */
+
+func insert(w http.ResponseWriter, r *http.Request) {
+	artist, artistOk := r.URL.Query()["artist"]
+	album, albumOk := r.URL.Query()["album"]
+	name, nameOk := r.URL.Query()["name"]
+
+	_ = artistOk
+	_ = albumOk
+	_ = nameOk
+
+	newId := addRecord(artist[0], album[0], name[0], "")
+	serializedId := idToJson(strconv.FormatInt(newId, 10))
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s", serializedId)
+}
+
+func getById(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get(":id")
+
+	fmt.Println("ID:", id)
+
+	serializedId := idToJson(id)
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s", serializedId)
+}
+
+/* main */
 
 func main() {
 	db, err := sql.Open("sqlite3", "./tracks.db")
