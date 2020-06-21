@@ -65,6 +65,31 @@ func idToJson(id string) string {
 	return string(jsonB)
 }
 
+func allRecords(page int) string {
+	idOffset := 30*page
+	statement, stmErr := musicDB.Prepare(
+		`SELECT * FROM music
+		WHERE id > ?
+		ORDER BY id
+		LIMIT 30`)
+	checkErr(stmErr)
+
+	rows, rowErr := statement.Query(idOffset)
+	checkErr(rowErr)
+
+	var tracks Tracks
+	for rows.Next() {
+		var track Track
+		rows.Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added)
+		tracks = append(tracks, track)
+	}
+
+	jsonB, errMarshal := json.Marshal(tracks)
+	checkErr(errMarshal)
+
+	return string(jsonB)
+}
+
 /* REST-related functions */
 
 func insert(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +119,19 @@ func getById(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", serializedId)
 }
 
+func getAllPaged(w http.ResponseWriter, r *http.Request) {
+	page, pageOk := r.URL.Query()["page"]
+	_ = pageOk
+
+	pageInt, pageIntErr := strconv.Atoi(page[0])
+	checkErr(pageIntErr)
+
+	pagedRecords := allRecords(pageInt)
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s", pagedRecords)
+}
+
 /* main */
 
 func main() {
@@ -110,6 +148,7 @@ func main() {
 
 	r := pat.New()
 	r.Post("/tracks", http.HandlerFunc(insert))
+	r.Get("/tracks", http.HandlerFunc(getAllPaged))
 	r.Get("/tracks/:id", http.HandlerFunc(getById))
 
 	http.Handle("/", r)
