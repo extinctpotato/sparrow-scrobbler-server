@@ -24,3 +24,5 @@ pnpm-debug.log*
 # My stuff
 sparrow-scrobbler-server
 *.db
+
+.creds
