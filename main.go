@@ -162,8 +162,9 @@ func main() {
 
 	http.Handle("/", r)
 
-	fmt.Println("Client:\t", sClientId)
-	fmt.Println("Secret:\t", sClientSecret)
+	fmt.Println("Client:", sClientId)
+	fmt.Println("Secret:", sClientSecret)
+	fmt.Println("Callback:", sCallbackUrl)
 
 	httpErr := http.ListenAndServe(":6789", nil)
 	checkErr(httpErr)
