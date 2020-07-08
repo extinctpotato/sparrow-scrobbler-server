@@ -6,12 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/bmizerany/pat"
 )
 
 var musicDB *sql.DB
+
+var sClientId string
+var sClientSecret string
+var sCallbackUrl string
 
 type Track struct {
 	Id	int64	`json:"id"`
@@ -140,6 +145,10 @@ func main() {
 	checkErr(err)
 	musicDB = db
 
+	sClientId = os.Getenv("SPOTIFY_CLIENT_ID")
+	sClientSecret = os.Getenv("SPOTIFY_CLIENT_SECRET")
+	sCallbackUrl = os.Getenv("SPOTIFY_CALLBACK_URL")
+
 	statement, err := db.Prepare(
 		`CREATE TABLE IF NOT EXISTS music 
 		(id INTEGER PRIMARY KEY, artist TEXT, 
@@ -152,7 +161,10 @@ func main() {
 	r.Get("/api/tracks/:id", http.HandlerFunc(getById))
 
 	http.Handle("/", r)
-	
+
+	fmt.Println("Client:\t", sClientId)
+	fmt.Println("Secret:\t", sClientSecret)
+
 	httpErr := http.ListenAndServe(":6789", nil)
 	checkErr(httpErr)
 }
