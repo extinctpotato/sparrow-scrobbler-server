@@ -95,6 +95,15 @@ func allRecords(page int) string {
 	return string(jsonB)
 }
 
+func setConf(key string, value string) {
+	statement, stmErr := musicDB.Prepare("UPDATE conf SET value = ? WHERE key = ?")
+	checkErr(stmErr)
+
+	result, resultErr := statement.Exec(value, key)
+	checkErr(resultErr)
+	_ = result
+}
+
 /* REST-related functions */
 
 func insert(w http.ResponseWriter, r *http.Request) {
@@ -149,11 +158,24 @@ func main() {
 	sClientSecret = os.Getenv("SPOTIFY_CLIENT_SECRET")
 	sCallbackUrl = os.Getenv("SPOTIFY_CALLBACK_URL")
 
-	statement, err := db.Prepare(
+	statementMusic, errMusic := db.Prepare(
 		`CREATE TABLE IF NOT EXISTS music 
 		(id INTEGER PRIMARY KEY, artist TEXT, 
 		album TEXT, name TEXT, uri TEXT, time CURRENT_TIMESTAMP)`)
-	statement.Exec()
+	checkErr(errMusic)
+	statementMusic.Exec()
+
+	statementConf, errConf := db.Prepare(
+		`CREATE TABLE IF NOT EXISTS conf
+		(key TEXT PRIMARY KEY, value TEXT)`)
+	checkErr(errConf)
+	statementConf.Exec()
+
+	statementConfBlank, errConfBlank := db.Prepare(
+		`INSERT OR IGNORE INTO conf (key, value) 
+		VALUES ("ACCESS",""), ("REFRESH","")`)
+	checkErr(errConfBlank)
+	statementConfBlank.Exec()
 
 	r := pat.New()
 	r.Post("/api/tracks", http.HandlerFunc(insert))
