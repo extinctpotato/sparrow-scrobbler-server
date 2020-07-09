@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"net/url"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -163,6 +164,21 @@ func getAllPaged(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", pagedRecords)
 }
 
+func spotifyAuthorize(w http.ResponseWriter, r *http.Request) {
+	baseUrl, _ := url.Parse("https://accounts.spotify.com")
+	baseUrl.Path += "authorize"
+
+	params := url.Values{}
+	params.Add("client_id", sClientId)
+	params.Add("response_type", "code")
+	params.Add("redirect_uri", sCallbackUrl)
+	params.Add("scope", "user-read-recently-played")
+
+	baseUrl.RawQuery = params.Encode()
+
+	http.Redirect(w, r, baseUrl.String(), 301)
+}
+
 /* main */
 
 func main() {
@@ -198,6 +214,7 @@ func main() {
 	r.Post("/api/tracks", http.HandlerFunc(insert))
 	r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
 	r.Get("/api/tracks/:id", http.HandlerFunc(getById))
+	r.Get("/api/sauth", http.HandlerFunc(spotifyAuthorize))
 
 	http.Handle("/", r)
 
