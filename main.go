@@ -104,6 +104,23 @@ func setConf(key string, value string) {
 	_ = result
 }
 
+func getConf(key string) string {
+	statement, stmErr := musicDB.Prepare("SELECT value FROM conf WHERE key = ?")
+	checkErr(stmErr)
+
+	result, resultErr := statement.Query(key)
+	checkErr(resultErr)
+
+	var value string
+	var iterErr error
+	for result.Next() {
+		iterErr = result.Scan(&value)
+		checkErr(iterErr)
+	}
+
+	return value
+}
+
 /* REST-related functions */
 
 func insert(w http.ResponseWriter, r *http.Request) {
