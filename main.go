@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"os"
+	"io/ioutil"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/bmizerany/pat"
@@ -26,6 +28,14 @@ type Track struct {
 	Name	string	`json:"name"`
 	Uri	string	`json:"uri"`
 	Added	string	`json:"added"`
+}
+
+type SpotifyAuth struct {
+	AccessToken	string	`json:"access_token"`
+	TokenType	string	`json:"token_type"`
+	Scope		string	`json:"scope"`
+	ExpiresIn	int64	`json:"expires_in"`
+	RefreshToken	string	`json:"refresh_token"`
 }
 
 type Tracks []Track
@@ -179,6 +189,52 @@ func spotifyAuthorize(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, baseUrl.String(), 301)
 }
 
+func callbackHandler(w http.ResponseWriter, r *http.Request) {
+	code, _ := r.URL.Query()["code"]
+	state, _ := r.URL.Query()["state"]
+	err, _ := r.URL.Query()["error"]
+
+	_ = code
+	_ = state
+	_ = err
+
+	if len(err) > 0 {
+		// Todo
+	}
+
+	spotifyAuthUrl := "https://accounts.spotify.com/api/token"
+
+	spotifyAuthPayload := url.Values{}
+	spotifyAuthPayload.Set("grant_type", "authorization_code")
+	spotifyAuthPayload.Set("code", code[0])
+	spotifyAuthPayload.Set("redirect_uri", sCallbackUrl)
+	spotifyAuthPayload.Set("client_id", sClientId)
+	spotifyAuthPayload.Set("client_secret", sClientSecret)
+
+	httpClient := &http.Client{}
+
+	sr, _ := http.NewRequest(http.MethodPost, spotifyAuthUrl, strings.NewReader(spotifyAuthPayload.Encode()))
+	sr.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	spotifyResp, _ := httpClient.Do(sr)
+
+	if spotifyResp.Body != nil {
+		defer spotifyResp.Body.Close()
+	}
+
+	spotifyRespBody, srbErr := ioutil.ReadAll(spotifyResp.Body)
+	checkErr(srbErr)
+
+	spotifyRespBodyParsed := SpotifyAuth{}
+	jsonErr := json.Unmarshal(spotifyRespBody, &spotifyRespBodyParsed)
+	checkErr(jsonErr)
+
+	fmt.Println(spotifyRespBodyParsed)
+
+	setConf("ACCESS", spotifyRespBodyParsed.AccessToken)
+	setConf("REFRESH", spotifyRespBodyParsed.RefreshToken)
+}
+
 /* main */
 
 func main() {
@@ -215,6 +271,7 @@ func main() {
 	r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
 	r.Get("/api/tracks/:id", http.HandlerFunc(getById))
 	r.Get("/api/sauth", http.HandlerFunc(spotifyAuthorize))
+	r.Get("/api/callback", http.HandlerFunc(callbackHandler))
 
 	http.Handle("/", r)
 
