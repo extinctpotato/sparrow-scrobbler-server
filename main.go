@@ -10,6 +10,7 @@ import (
 	"strings"
 	"os"
 	"io/ioutil"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/bmizerany/pat"
@@ -174,6 +175,30 @@ func getAllPaged(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", pagedRecords)
 }
 
+func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
+	spotifyApiUrl := "https://api.spotify.com/v1/me/player/recently-played"
+
+	bearerHeader := fmt.Sprintf("Bearer %s", getConf("ACCESS"))
+
+	httpClient := &http.Client{}
+
+	sr, _ := http.NewRequest(http.MethodGet, spotifyApiUrl, nil)
+	sr.Header.Add("Authorization", bearerHeader)
+
+	spotifyResp, _ := httpClient.Do(sr)
+
+	data, _ := ioutil.ReadAll(spotifyResp.Body)
+
+	if spotifyResp.Body != nil {
+		defer spotifyResp.Body.Close()
+	}
+
+
+	w.Header().Set("Content-Type", "application/json")
+
+	fmt.Fprintf(w, "%s\n", data)
+}
+
 func spotifyAuthorize(w http.ResponseWriter, r *http.Request) {
 	baseUrl, _ := url.Parse("https://accounts.spotify.com")
 	baseUrl.Path += "authorize"
@@ -231,8 +256,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(spotifyRespBodyParsed)
 
+	t := time.Now()
+
 	setConf("ACCESS", spotifyRespBodyParsed.AccessToken)
 	setConf("REFRESH", spotifyRespBodyParsed.RefreshToken)
+	setConf("ACCESS_VALIDITY", strconv.FormatInt(t.Unix()+spotifyRespBodyParsed.ExpiresIn, 10))
 }
 
 /* main */
@@ -262,7 +290,7 @@ func main() {
 
 	statementConfBlank, errConfBlank := db.Prepare(
 		`INSERT OR IGNORE INTO conf (key, value) 
-		VALUES ("ACCESS",""), ("REFRESH","")`)
+		VALUES ("ACCESS",""), ("REFRESH",""), ("ACCESS_VALIDITY", "")`)
 	checkErr(errConfBlank)
 	statementConfBlank.Exec()
 
@@ -270,8 +298,9 @@ func main() {
 	r.Post("/api/tracks", http.HandlerFunc(insert))
 	r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
 	r.Get("/api/tracks/:id", http.HandlerFunc(getById))
-	r.Get("/api/sauth", http.HandlerFunc(spotifyAuthorize))
+	r.Get("/api/s/auth", http.HandlerFunc(spotifyAuthorize))
 	r.Get("/api/callback", http.HandlerFunc(callbackHandler))
+	r.Get("/api/s/history", http.HandlerFunc(spotifyRecentlyPlayed))
 
 	http.Handle("/", r)
 
