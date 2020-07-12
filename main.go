@@ -178,6 +178,8 @@ func getAllPaged(w http.ResponseWriter, r *http.Request) {
 func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
 	spotifyApiUrl := "https://api.spotify.com/v1/me/player/recently-played"
 
+	ensureToken()
+
 	bearerHeader := fmt.Sprintf("Bearer %s", getConf("ACCESS"))
 
 	httpClient := &http.Client{}
@@ -261,6 +263,48 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	setConf("ACCESS", spotifyRespBodyParsed.AccessToken)
 	setConf("REFRESH", spotifyRespBodyParsed.RefreshToken)
 	setConf("ACCESS_VALIDITY", strconv.FormatInt(t.Unix()+spotifyRespBodyParsed.ExpiresIn, 10))
+}
+
+/* misc */
+
+func ensureToken() {
+	accessValidity, avErr := strconv.ParseInt(getConf("ACCESS_VALIDITY"), 10, 64)
+	checkErr(avErr)
+
+	t := time.Now()
+
+	timeDiff := accessValidity - t.Unix()
+
+	if timeDiff < 60 {
+		spotifyAuthUrl := "https://accounts.spotify.com/api/token"
+
+		spotifyAuthPayload := url.Values{}
+		spotifyAuthPayload.Set("grant_type", "refresh_token")
+		spotifyAuthPayload.Set("refresh_token", getConf("REFRESH"))
+		spotifyAuthPayload.Set("client_id", sClientId)
+		spotifyAuthPayload.Set("client_secret", sClientSecret)
+
+		httpClient := &http.Client{}
+
+		sr, _ := http.NewRequest(http.MethodPost, spotifyAuthUrl, strings.NewReader(spotifyAuthPayload.Encode()))
+		sr.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+		spotifyResp, _ := httpClient.Do(sr)
+
+		if spotifyResp.Body != nil {
+			defer spotifyResp.Body.Close()
+		}
+
+		spotifyRespBody, srbErr := ioutil.ReadAll(spotifyResp.Body)
+		checkErr(srbErr)
+
+		spotifyRespBodyParsed := SpotifyAuth{}
+		jsonErr := json.Unmarshal(spotifyRespBody, &spotifyRespBodyParsed)
+		checkErr(jsonErr)
+
+		setConf("ACCESS", spotifyRespBodyParsed.AccessToken)
+		setConf("ACCESS_VALIDITY", strconv.FormatInt(t.Unix()+spotifyRespBodyParsed.ExpiresIn, 10))
+	}
 }
 
 /* main */
