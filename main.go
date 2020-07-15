@@ -195,10 +195,21 @@ func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
 		defer spotifyResp.Body.Close()
 	}
 
+	var respStruct SpotifyRecentlyPlayed
+
+	jsonErr := json.Unmarshal(data, &respStruct)
+	checkErr(jsonErr)
+
+	for key, _ := range respStruct.Items {
+		respStruct.Items[key].Track.Album.AvailableMarkets = nil
+		respStruct.Items[key].Track.AvailableMarkets = nil
+	}
+
+	formattedData, _ := json.Marshal(respStruct.Items)
 
 	w.Header().Set("Content-Type", "application/json")
 
-	fmt.Fprintf(w, "%s\n", data)
+	fmt.Fprintf(w, "%s\n", string(formattedData))
 }
 
 func spotifyAuthorize(w http.ResponseWriter, r *http.Request) {
