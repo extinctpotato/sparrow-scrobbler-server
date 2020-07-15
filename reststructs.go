@@ -10,11 +10,11 @@ type SpotifyRecentlyPlayed struct {
 		Context struct {
 			ExternalUrls struct {
 				Spotify string `json:"spotify"`
-			} `json:"external_urls"`
+			} `json:"-"`
 			Href string `json:"href"`
 			Type string `json:"type"`
 			URI  string `json:"uri"`
-		} `json:"context"`
+		} `json:"-"`
 		PlayedAt string `json:"played_at"`
 		Track    struct {
 			Album struct {
@@ -29,7 +29,7 @@ type SpotifyRecentlyPlayed struct {
 					Type string `json:"type"`
 					URI  string `json:"uri"`
 				} `json:"artists"`
-				AvailableMarkets []string `json:"available_markets"`
+				AvailableMarkets []string `json:"-"`
 				ExternalUrls     struct {
 					Spotify string `json:"spotify"`
 				} `json:"external_urls"`
@@ -57,24 +57,24 @@ type SpotifyRecentlyPlayed struct {
 				Type string `json:"type"`
 				URI  string `json:"uri"`
 			} `json:"artists"`
-			AvailableMarkets []string `json:"available_markets"`
-			DiscNumber       int64    `json:"disc_number"`
-			DurationMs       int64    `json:"duration_ms"`
-			Explicit         bool     `json:"explicit"`
+			AvailableMarkets []string `json:"-"`
+			DiscNumber       int64    `json:"-"`
+			DurationMs       int64    `json:"-"`
+			Explicit         bool     `json:"-"`
 			ExternalIds      struct {
 				Isrc string `json:"isrc"`
-			} `json:"external_ids"`
+			} `json:"-"`
 			ExternalUrls struct {
 				Spotify string `json:"spotify"`
-			} `json:"external_urls"`
-			Href        string `json:"href"`
+			} `json:"-"`
+			Href        string `json:"-"`
 			ID          string `json:"id"`
-			IsLocal     bool   `json:"is_local"`
+			IsLocal     bool   `json:"-"`
 			Name        string `json:"name"`
-			Popularity  int64  `json:"popularity"`
-			PreviewURL  string `json:"preview_url"`
-			TrackNumber int64  `json:"track_number"`
-			Type        string `json:"type"`
+			Popularity  int64  `json:"-"`
+			PreviewURL  string `json:"-"`
+			TrackNumber int64  `json:"-"`
+			Type        string `json:"-"`
 			URI         string `json:"uri"`
 		} `json:"track"`
 	} `json:"items"`

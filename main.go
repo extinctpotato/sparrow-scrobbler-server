@@ -200,12 +200,8 @@ func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
 	jsonErr := json.Unmarshal(data, &respStruct)
 	checkErr(jsonErr)
 
-	for key, _ := range respStruct.Items {
-		respStruct.Items[key].Track.Album.AvailableMarkets = nil
-		respStruct.Items[key].Track.AvailableMarkets = nil
-	}
-
-	formattedData, _ := json.Marshal(respStruct.Items)
+	formattedData, formattedDataErr := json.Marshal(respStruct.Items)
+	checkErr(formattedDataErr)
 
 	w.Header().Set("Content-Type", "application/json")
 
