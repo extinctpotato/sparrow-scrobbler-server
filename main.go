@@ -176,32 +176,7 @@ func getAllPaged(w http.ResponseWriter, r *http.Request) {
 }
 
 func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
-	spotifyApiUrl := "https://api.spotify.com/v1/me/player/recently-played"
-
-	ensureToken()
-
-	bearerHeader := fmt.Sprintf("Bearer %s", getConf("ACCESS"))
-
-	httpClient := &http.Client{}
-
-	sr, _ := http.NewRequest(http.MethodGet, spotifyApiUrl, nil)
-	sr.Header.Add("Authorization", bearerHeader)
-
-	spotifyResp, _ := httpClient.Do(sr)
-
-	data, _ := ioutil.ReadAll(spotifyResp.Body)
-
-	if spotifyResp.Body != nil {
-		defer spotifyResp.Body.Close()
-	}
-
-	var respStruct SpotifyRecentlyPlayed
-
-	jsonErr := json.Unmarshal(data, &respStruct)
-	checkErr(jsonErr)
-
-	formattedData, formattedDataErr := json.Marshal(respStruct.Items)
-	checkErr(formattedDataErr)
+	formattedData, _ := getSpotifyRecentlyPlayed()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -312,6 +287,37 @@ func ensureToken() {
 		setConf("ACCESS", spotifyRespBodyParsed.AccessToken)
 		setConf("ACCESS_VALIDITY", strconv.FormatInt(t.Unix()+spotifyRespBodyParsed.ExpiresIn, 10))
 	}
+}
+
+func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
+	spotifyApiUrl := "https://api.spotify.com/v1/me/player/recently-played"
+
+	ensureToken()
+
+	bearerHeader := fmt.Sprintf("Bearer %s", getConf("ACCESS"))
+
+	httpClient := &http.Client{}
+
+	sr, _ := http.NewRequest(http.MethodGet, spotifyApiUrl, nil)
+	sr.Header.Add("Authorization", bearerHeader)
+
+	spotifyResp, _ := httpClient.Do(sr)
+
+	data, _ := ioutil.ReadAll(spotifyResp.Body)
+
+	if spotifyResp.Body != nil {
+		defer spotifyResp.Body.Close()
+	}
+
+	var respStruct SpotifyRecentlyPlayed
+
+	jsonErr := json.Unmarshal(data, &respStruct)
+	checkErr(jsonErr)
+
+	formattedData, formattedDataErr := json.Marshal(respStruct.Items)
+	checkErr(formattedDataErr)
+
+	return string(formattedData), respStruct
 }
 
 /* main */
