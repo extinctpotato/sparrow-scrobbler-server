@@ -401,9 +401,9 @@ func main() {
 
 	http.Handle("/", r)
 
-	fmt.Println("Client:", sClientId)
-	fmt.Println("Secret:", sClientSecret)
-	fmt.Println("Callback:", sCallbackUrl)
+	glog.V(2).Info("Client: ", sClientId)
+	glog.V(2).Info("Secret: ", sClientSecret)
+	glog.V(2).Info("Callback: ", sCallbackUrl)
 
 	syncData()
 
