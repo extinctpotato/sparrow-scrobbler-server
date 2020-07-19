@@ -11,9 +11,11 @@ import (
 	"os"
 	"io/ioutil"
 	"time"
+	"flag"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/bmizerany/pat"
+	"github.com/golang/glog"
 )
 
 var musicDB *sql.DB
@@ -86,15 +88,24 @@ func idToJson(id string) string {
 }
 
 func allRecords(page int) string {
-	idOffset := 30*page
+	maxIdStatement, maxIdStatementErr := musicDB.Prepare("SELECT MAX(id) FROM music")
+	checkErr(maxIdStatementErr)
+
+	var maxId int
+	maxIdStatement.QueryRow().Scan(&maxId)
+
+	minPageId := maxId - 30*(page+1)
+	maxPageId := minPageId+30
+
 	statement, stmErr := musicDB.Prepare(
 		`SELECT * FROM music
-		WHERE id > ?
-		ORDER BY id
-		LIMIT 30`)
+		WHERE id > ? AND ID <= ?
+		ORDER BY id DESC`)
 	checkErr(stmErr)
 
-	rows, rowErr := statement.Query(idOffset)
+	glog.Infof("Getting records from %d to %d.", minPageId, maxPageId)
+
+	rows, rowErr := statement.Query(minPageId, maxPageId)
 	checkErr(rowErr)
 
 	var tracks Tracks
@@ -353,6 +364,10 @@ func syncData() {
 }
 
 /* main */
+
+func init() {
+	flag.Parse()
+}
 
 func main() {
 	db, err := sql.Open("sqlite3", "./tracks.db")
