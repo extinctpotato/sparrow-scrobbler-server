@@ -25,6 +25,12 @@ var (
 	sCallbackUrl  string
 )
 
+const (
+	ENV1 = "SPOTIFY_CLIENT_ID"
+	ENV2 = "SPOTIFY_CLIENT_SECRET"
+	ENV3 = "SPOTIFY_CALLBACK_URL"
+)
+
 type Tracks []Track
 
 func checkErr(err error) {
@@ -355,11 +361,15 @@ func main() {
 	checkErr(err)
 	musicDB = db
 
-	sClientId = os.Getenv("SPOTIFY_CLIENT_ID")
-	sClientSecret = os.Getenv("SPOTIFY_CLIENT_SECRET")
-	sCallbackUrl = os.Getenv("SPOTIFY_CALLBACK_URL")
+	var allEnvs bool
 
-	glog.Fatal("Test")
+	sClientId, allEnvs = os.LookupEnv(ENV1)
+	sClientSecret, allEnvs = os.LookupEnv(ENV2)
+	sCallbackUrl, allEnvs = os.LookupEnv(ENV3)
+
+	if !allEnvs {
+		glog.Fatal("Please declare all variables!")
+	}
 
 	statementMusic, errMusic := db.Prepare(
 		`CREATE TABLE IF NOT EXISTS music 
