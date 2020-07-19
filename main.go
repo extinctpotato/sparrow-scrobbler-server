@@ -24,24 +24,6 @@ var sClientId string
 var sClientSecret string
 var sCallbackUrl string
 
-type Track struct {
-	Id		int64	`json:"id"`
-	Artist		string	`json:"artist"`
-	Album		string	`json:"album"`
-	Name		string	`json:"name"`
-	Uri		string	`json:"uri"`
-	Added		string	`json:"add_time"`
-	PlayedAt	string	`json:"played_at"`
-}
-
-type SpotifyAuth struct {
-	AccessToken	string	`json:"access_token"`
-	TokenType	string	`json:"token_type"`
-	Scope		string	`json:"scope"`
-	ExpiresIn	int64	`json:"expires_in"`
-	RefreshToken	string	`json:"refresh_token"`
-}
-
 type Tracks []Track
 
 func checkErr(err error) {
