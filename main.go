@@ -23,12 +23,13 @@ var sClientSecret string
 var sCallbackUrl string
 
 type Track struct {
-	Id	int64	`json:"id"`
-	Artist	string	`json:"artist"`
-	Album	string	`json:"album"`
-	Name	string	`json:"name"`
-	Uri	string	`json:"uri"`
-	Added	string	`json:"added"`
+	Id		int64	`json:"id"`
+	Artist		string	`json:"artist"`
+	Album		string	`json:"album"`
+	Name		string	`json:"name"`
+	Uri		string	`json:"uri"`
+	Added		string	`json:"add_time"`
+	PlayedAt	string	`json:"played_at"`
 }
 
 type SpotifyAuth struct {
@@ -49,13 +50,15 @@ func checkErr(err error) {
 
 /* Pure SQLite-related functions */
 
-func addRecord(artist string, album string, name string, uri string) int64 {
+func addRecord(p ...string) int64 {
+	// p are ordered as follows: artist, album, name, uri, played_at
+
 	statement, err := musicDB.Prepare(
-		`INSERT INTO music (artist, album, name, uri, time)
-		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`)
+		`INSERT INTO music (artist, album, name, uri, add_time, played_at)
+		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`)
 	checkErr(err)
 
-	result, resultErr := statement.Exec(artist, album, name, uri)
+	result, resultErr := statement.Exec(p[0], p[1], p[2], p[3], p[4])
 	checkErr(resultErr)
 
 	id, idErr := result.LastInsertId()
@@ -73,7 +76,7 @@ func idToJson(id string) string {
 
 	var track Track
 	for rows.Next() {
-		rows.Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added)
+		rows.Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added, &track.PlayedAt)
 	}
 
 	jsonB, errMarshal := json.Marshal(track)
@@ -97,7 +100,7 @@ func allRecords(page int) string {
 	var tracks Tracks
 	for rows.Next() {
 		var track Track
-		rows.Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added)
+		rows.Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added, &track.PlayedAt)
 		tracks = append(tracks, track)
 	}
 
@@ -144,7 +147,7 @@ func insert(w http.ResponseWriter, r *http.Request) {
 	_ = albumOk
 	_ = nameOk
 
-	newId := addRecord(artist[0], album[0], name[0], "")
+	newId := addRecord(artist[0], album[0], name[0], "", "")
 	serializedId := idToJson(strconv.FormatInt(newId, 10))
 
 	w.Header().Set("Content-Type", "application/json")
@@ -320,6 +323,35 @@ func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
 	return string(formattedData), respStruct
 }
 
+func syncData() {
+	var incomingData SpotifyRecentlyPlayed
+	_, incomingData = getSpotifyRecentlyPlayed()
+
+	for _, recentTrack := range incomingData.Items {
+		checkQuery, checkQueryErr := musicDB.Prepare("SELECT * FROM music WHERE played_at = ?")
+		checkErr(checkQueryErr)
+
+		var track Track
+
+		checkRowErr := checkQuery.QueryRow(recentTrack.PlayedAt).Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added, &track.PlayedAt)
+		switch {
+		case checkRowErr == sql.ErrNoRows:
+			fmt.Printf("Inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
+			addRecord(
+				recentTrack.Track.Artists[0].Name,
+				recentTrack.Track.Album.Name,
+				recentTrack.Track.Name,
+				recentTrack.Track.URI,
+				recentTrack.PlayedAt,
+			)
+		case checkRowErr != nil:
+			checkErr(checkRowErr)
+		default:
+			fmt.Printf("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
+		}
+	}
+}
+
 /* main */
 
 func main() {
@@ -335,7 +367,8 @@ func main() {
 	statementMusic, errMusic := db.Prepare(
 		`CREATE TABLE IF NOT EXISTS music 
 		(id INTEGER PRIMARY KEY, artist TEXT, 
-		album TEXT, name TEXT, uri TEXT, time CURRENT_TIMESTAMP)`)
+		album TEXT, name TEXT, uri TEXT, 
+		add_time CURRENT_TIMESTAMP, played_at TEXT)`)
 	checkErr(errMusic)
 	statementMusic.Exec()
 
@@ -364,6 +397,8 @@ func main() {
 	fmt.Println("Client:", sClientId)
 	fmt.Println("Secret:", sClientSecret)
 	fmt.Println("Callback:", sCallbackUrl)
+
+	syncData()
 
 	httpErr := http.ListenAndServe(":6789", nil)
 	checkErr(httpErr)
