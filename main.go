@@ -70,20 +70,17 @@ func idToJson(id string) string {
 }
 
 func allRecords(page int) string {
-	maxIdStatement, maxIdStatementErr := musicDB.Prepare("SELECT MAX(id) FROM music")
-	checkErr(maxIdStatementErr)
-
+	maxIdStatement, _ := musicDB.Prepare("SELECT MAX(id) FROM music")
 	var maxId int
 	maxIdStatement.QueryRow().Scan(&maxId)
 
 	minPageId := maxId - 30*(page+1)
 	maxPageId := minPageId+30
 
-	statement, stmErr := musicDB.Prepare(
+	statement, _ := musicDB.Prepare(
 		`SELECT * FROM music
 		WHERE id > ? AND ID <= ?
 		ORDER BY id DESC`)
-	checkErr(stmErr)
 
 	glog.Infof("Getting records from %d to %d.", minPageId, maxPageId)
 
