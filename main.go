@@ -2,27 +2,28 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
-	"encoding/json"
-	"fmt"
+	"os"
 	"strconv"
 	"strings"
-	"os"
-	"io/ioutil"
 	"time"
-	"flag"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/bmizerany/pat"
 	"github.com/golang/glog"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-var musicDB *sql.DB
-
-var sClientId string
-var sClientSecret string
-var sCallbackUrl string
+var (
+	musicDB       *sql.DB
+	sClientId     string
+	sClientSecret string
+	sCallbackUrl  string
+)
 
 type Tracks []Track
 
@@ -75,7 +76,7 @@ func allRecords(page int) string {
 	maxIdStatement.QueryRow().Scan(&maxId)
 
 	minPageId := maxId - 30*(page+1)
-	maxPageId := minPageId+30
+	maxPageId := minPageId + 30
 
 	statement, _ := musicDB.Prepare(
 		`SELECT * FROM music
@@ -357,6 +358,8 @@ func main() {
 	sClientId = os.Getenv("SPOTIFY_CLIENT_ID")
 	sClientSecret = os.Getenv("SPOTIFY_CLIENT_SECRET")
 	sCallbackUrl = os.Getenv("SPOTIFY_CALLBACK_URL")
+
+	glog.Fatal("Test")
 
 	statementMusic, errMusic := db.Prepare(
 		`CREATE TABLE IF NOT EXISTS music 
