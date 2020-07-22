@@ -258,6 +258,7 @@ func ensureToken() {
 	timeDiff := accessValidity - t.Unix()
 
 	if timeDiff < 60 {
+		glog.Info("Getting new token.")
 		spotifyAuthUrl := "https://accounts.spotify.com/api/token"
 
 		spotifyAuthPayload := url.Values{}
@@ -286,6 +287,7 @@ func ensureToken() {
 
 		setConf("ACCESS", spotifyRespBodyParsed.AccessToken)
 		setConf("ACCESS_VALIDITY", strconv.FormatInt(t.Unix()+spotifyRespBodyParsed.ExpiresIn, 10))
+		glog.Info("New token expires in: ", getConf("ACCESS_VALIDITY"))
 	}
 }
 
@@ -324,7 +326,8 @@ func syncData() {
 	var incomingData SpotifyRecentlyPlayed
 	_, incomingData = getSpotifyRecentlyPlayed()
 
-	for _, recentTrack := range incomingData.Items {
+	for i := len(incomingData.Items)-1; i >= 0; i-- {
+		recentTrack := incomingData.Items[i]
 		checkQuery, checkQueryErr := musicDB.Prepare("SELECT * FROM music WHERE played_at = ?")
 		checkErr(checkQueryErr)
 
@@ -333,7 +336,7 @@ func syncData() {
 		checkRowErr := checkQuery.QueryRow(recentTrack.PlayedAt).Scan(&track.Id, &track.Artist, &track.Album, &track.Name, &track.Uri, &track.Added, &track.PlayedAt)
 		switch {
 		case checkRowErr == sql.ErrNoRows:
-			fmt.Printf("Inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
+			glog.Infof("Inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
 			addRecord(
 				recentTrack.Track.Artists[0].Name,
 				recentTrack.Track.Album.Name,
@@ -344,7 +347,7 @@ func syncData() {
 		case checkRowErr != nil:
 			checkErr(checkRowErr)
 		default:
-			fmt.Printf("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
+			glog.Infof("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
 		}
 	}
 }
