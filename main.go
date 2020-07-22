@@ -166,8 +166,15 @@ func getAllPaged(w http.ResponseWriter, r *http.Request) {
 	page, pageOk := r.URL.Query()["page"]
 	_ = pageOk
 
-	pageInt, pageIntErr := strconv.Atoi(page[0])
-	checkErr(pageIntErr)
+	var pageInt int
+	var pageIntErr error
+
+	if len(page) > 0 {
+		pageInt, pageIntErr = strconv.Atoi(page[0])
+		checkErr(pageIntErr)
+	} else {
+		pageInt = 0
+	}
 
 	pagedRecords := allRecords(pageInt)
 
