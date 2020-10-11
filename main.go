@@ -366,7 +366,7 @@ func init() {
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", "./tracks.db")
+	db, err := sql.Open("sqlite3", "file:./tracks.db?_mutex=full")
 	defer db.Close()
 	checkErr(err)
 	musicDB = db
