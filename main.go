@@ -415,7 +415,15 @@ func main() {
 	glog.V(2).Info("Secret: ", sClientSecret)
 	glog.V(2).Info("Callback: ", sCallbackUrl)
 
-	syncData()
+	ticker := time.NewTicker(30 * time.Second)
+	go func() {
+		for range ticker.C {
+			glog.V(2).Info("Syncing data...")
+			syncData()
+		}
+	}()
+
+	defer ticker.Stop()
 
 	httpErr := http.ListenAndServe(":6789", nil)
 	checkErr(httpErr)
