@@ -3,6 +3,7 @@ var apiHelper = {
   apiBaseUrl: 'http://localhost:6789/api',
   transform: {
     tag: 'tr',
+    class: 'track-tr',
     children: [
       {
         'tag':'td',
@@ -34,15 +35,35 @@ var apiHelper = {
       if(r.readyState == 4) {
         if(r.status == 200) {
           this.tracks = JSON.parse(r.responseText);
-          $('#tracks tbody').remove();
+          $('.track-tr').remove();
           $('#tracks').json2html(this.tracks, this.transform);
         }
       }
     }.bind(this);
     r.send(null);
   },
+  nextPage: function() {
+    this.currPage++;
+    this.getTracks();
+  },
+  prevPage: function() {
+    this.currPage--;
+    this.getTracks();
+  },
 };
 
 window.addEventListener('DOMContentLoaded', (event) => {
-    apiHelper.getTracks();
+  apiHelper.getTracks();
+  $('ul.pagination li a').on('click', function(e) {
+    e.preventDefault();
+    var tag = $(this).text();
+
+    if(tag === 'Next') {
+      apiHelper.nextPage();
+    } else if(tag === 'Previous') {
+      apiHelper.prevPage();
+    }
+
+    $("html, body").animate({ scrollTop: 0 }, "slow");
+  });
 });
