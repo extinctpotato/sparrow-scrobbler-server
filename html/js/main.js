@@ -1,5 +1,6 @@
 var apiHelper = {
   currPage: 0,
+  maxPage: 0,
   apiBaseUrl: 'http://localhost:6789/api',
   transform: {
     tag: 'tr',
@@ -35,6 +36,23 @@ var apiHelper = {
       if(r.readyState == 4) {
         if(r.status == 200) {
           this.tracks = JSON.parse(r.responseText);
+
+          if(this.maxPage === 0) {
+            this.maxPage = Math.floor(apiHelper.tracks[0].id/30);
+          }
+
+          if(this.currPage === 0) {
+            $('#prev-page-btn').addClass('disabled');
+          } else {
+            $('#prev-page-btn').removeClass('disabled');
+          }
+
+          if (this.currPage === this.maxPage) {
+            $('#next-page-btn').addClass('disabled');
+          } else {
+            $('#next-page-btn').removeClass('disabled');
+          }
+
           $('.track-tr').remove();
           $('#tracks').json2html(this.tracks, this.transform);
         }
@@ -54,6 +72,7 @@ var apiHelper = {
 
 window.addEventListener('DOMContentLoaded', (event) => {
   apiHelper.getTracks();
+
   $('ul.pagination li a').on('click', function(e) {
     e.preventDefault();
     var tag = $(this).text();
