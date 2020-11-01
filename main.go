@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmizerany/pat"
+	"github.com/gorilla/mux"
 	"github.com/golang/glog"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -401,15 +401,35 @@ func main() {
 	checkErr(errConfBlank)
 	statementConfBlank.Exec()
 
-	r := pat.New()
-	r.Post("/api/tracks", http.HandlerFunc(insert))
-	r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
-	r.Get("/api/tracks/:id", http.HandlerFunc(getById))
-	r.Get("/api/s/auth", http.HandlerFunc(spotifyAuthorize))
-	r.Get("/api/callback", http.HandlerFunc(callbackHandler))
-	r.Get("/api/s/history", http.HandlerFunc(spotifyRecentlyPlayed))
+	//r := pat.New()
 
-	http.Handle("/", r)
+	mainRouter := mux.NewRouter()
+	apiRouter := mainRouter.PathPrefix("/api").Subrouter()
+
+	apiRouter.HandleFunc("/tracks", insert).Methods("POST")
+	apiRouter.HandleFunc("/tracks", getAllPaged).Methods("GET")
+	apiRouter.HandleFunc("/tracks/{id}", getById).Methods("GET")
+	apiRouter.HandleFunc("/s/auth", spotifyAuthorize).Methods("GET")
+	apiRouter.HandleFunc("/callback", callbackHandler).Methods("GET")
+	apiRouter.HandleFunc("/s/history", spotifyRecentlyPlayed).Methods("GET")
+
+	mainRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html"))))
+
+	//r.Post("/api/tracks", http.HandlerFunc(insert))
+	//r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
+	//r.Get("/api/tracks/:id", http.HandlerFunc(getById))
+	//r.Get("/api/s/auth", http.HandlerFunc(spotifyAuthorize))
+	//r.Get("/api/callback", http.HandlerFunc(callbackHandler))
+	//r.Get("/api/s/history", http.HandlerFunc(spotifyRecentlyPlayed))
+
+	srv := &http.Server{
+		Handler: mainRouter,
+		Addr: "0.0.0.0:6789",
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout: 15 * time.Second,
+	}
+
+	//http.Handle("/", r)
 
 	glog.V(2).Info("Client: ", sClientId)
 	glog.V(2).Info("Secret: ", sClientSecret)
@@ -425,6 +445,6 @@ func main() {
 
 	defer ticker.Stop()
 
-	httpErr := http.ListenAndServe(":6789", nil)
-	checkErr(httpErr)
+	//httpErr := http.ListenAndServe(":6789", nil)
+	checkErr(srv.ListenAndServe())
 }
