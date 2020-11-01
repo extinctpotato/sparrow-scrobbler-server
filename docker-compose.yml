@@ -1,0 +1,5 @@
+version: "2"
+services:
+  sss:
+    image: "docker.aole.ch/sss:latest"
+    env_file: ["./.creds"]
