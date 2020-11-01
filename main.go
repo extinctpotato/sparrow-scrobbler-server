@@ -312,7 +312,9 @@ func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
 	sr, _ := http.NewRequest(http.MethodGet, spotifyApiUrl, nil)
 	sr.Header.Add("Authorization", bearerHeader)
 
-	spotifyResp, _ := httpClient.Do(sr)
+	spotifyResp, spotifyErr := httpClient.Do(sr)
+
+	checkErr(spotifyErr)
 
 	data, _ := ioutil.ReadAll(spotifyResp.Body)
 
