@@ -1,7 +1,7 @@
 var apiHelper = {
   currPage: 0,
   maxPage: 0,
-  apiBaseUrl: 'http://localhost:6789/api',
+  apiBaseUrl: `${window.location.href}/api`,
   transform: {
     tag: 'tr',
     class: 'track-tr',
