@@ -401,8 +401,6 @@ func main() {
 	checkErr(errConfBlank)
 	statementConfBlank.Exec()
 
-	//r := pat.New()
-
 	mainRouter := mux.NewRouter()
 	apiRouter := mainRouter.PathPrefix("/api").Subrouter()
 
@@ -415,21 +413,12 @@ func main() {
 
 	mainRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html"))))
 
-	//r.Post("/api/tracks", http.HandlerFunc(insert))
-	//r.Get("/api/tracks", http.HandlerFunc(getAllPaged))
-	//r.Get("/api/tracks/:id", http.HandlerFunc(getById))
-	//r.Get("/api/s/auth", http.HandlerFunc(spotifyAuthorize))
-	//r.Get("/api/callback", http.HandlerFunc(callbackHandler))
-	//r.Get("/api/s/history", http.HandlerFunc(spotifyRecentlyPlayed))
-
 	srv := &http.Server{
 		Handler: mainRouter,
 		Addr: "0.0.0.0:6789",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout: 15 * time.Second,
 	}
-
-	//http.Handle("/", r)
 
 	glog.V(2).Info("Client: ", sClientId)
 	glog.V(2).Info("Secret: ", sClientSecret)
