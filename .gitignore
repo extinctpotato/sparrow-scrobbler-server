@@ -26,3 +26,5 @@ sparrow-scrobbler-server
 *.db
 
 .creds
+
+docker-compose.override.yml
