@@ -434,6 +434,5 @@ func main() {
 
 	defer ticker.Stop()
 
-	//httpErr := http.ListenAndServe(":6789", nil)
 	checkErr(srv.ListenAndServe())
 }
