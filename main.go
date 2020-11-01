@@ -23,12 +23,14 @@ var (
 	sClientId     string
 	sClientSecret string
 	sCallbackUrl  string
+	sDbPath       string
 )
 
 const (
 	ENV1 = "SPOTIFY_CLIENT_ID"
 	ENV2 = "SPOTIFY_CLIENT_SECRET"
 	ENV3 = "SPOTIFY_CALLBACK_URL"
+	ENV4 = "SPOTIFY_DB_PATH"
 )
 
 type Tracks []Track
@@ -366,20 +368,23 @@ func init() {
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", "file:./tracks.db?_mutex=full")
-	defer db.Close()
-	checkErr(err)
-	musicDB = db
-
 	var allEnvs bool
 
 	sClientId, allEnvs = os.LookupEnv(ENV1)
 	sClientSecret, allEnvs = os.LookupEnv(ENV2)
 	sCallbackUrl, allEnvs = os.LookupEnv(ENV3)
+	sDbPath, allEnvs = os.LookupEnv(ENV4)
+
+	dbUri := fmt.Sprintf("file:%s?_mutex=full", sDbPath)
 
 	if !allEnvs {
 		glog.Fatal("Please declare all variables!")
 	}
+
+	db, err := sql.Open("sqlite3", dbUri)
+	defer db.Close()
+	checkErr(err)
+	musicDB = db
 
 	statementMusic, errMusic := db.Prepare(
 		`CREATE TABLE IF NOT EXISTS music 
