@@ -358,7 +358,7 @@ func syncData() {
 		case checkRowErr != nil:
 			checkErr(checkRowErr)
 		default:
-			glog.Infof("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
+			glog.V(3).Info("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
 		}
 	}
 }
@@ -434,7 +434,7 @@ func main() {
 	ticker := time.NewTicker(30 * time.Second)
 	go func() {
 		for range ticker.C {
-			glog.V(2).Info("Syncing data...")
+			glog.V(3).Info("Syncing data...")
 			syncData()
 		}
 	}()
