@@ -368,7 +368,7 @@ func syncData() {
 		case checkRowErr != nil:
 			checkErr(checkRowErr)
 		default:
-			glog.V(3).Info("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name)
+			glog.V(3).Info(fmt.Sprintf("NOT inserting %s by %s.\n", recentTrack.Track.Name, recentTrack.Track.Artists[0].Name))
 		}
 	}
 }
