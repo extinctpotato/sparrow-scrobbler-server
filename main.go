@@ -50,6 +50,7 @@ func addRecord(p ...string) int64 {
 		`INSERT INTO music (artist, album, name, uri, add_time, played_at)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`)
 	checkErr(err)
+	defer statement.Close();
 
 	result, resultErr := statement.Exec(p[0], p[1], p[2], p[3], p[4])
 	checkErr(resultErr)
@@ -63,9 +64,11 @@ func addRecord(p ...string) int64 {
 func idToJson(id string) string {
 	statement, stmErr := musicDB.Prepare("SELECT * FROM music WHERE id = ?")
 	checkErr(stmErr)
+	defer statement.Close();
 
 	rows, rowErr := statement.Query(id)
 	checkErr(rowErr)
+	defer rows.Close()
 
 	var track Track
 	for rows.Next() {
@@ -80,6 +83,7 @@ func idToJson(id string) string {
 
 func allRecords(page int) string {
 	maxIdStatement, _ := musicDB.Prepare("SELECT MAX(id) FROM music")
+	defer maxIdStatement.Close();
 	var maxId int
 	maxIdStatement.QueryRow().Scan(&maxId)
 
@@ -90,11 +94,13 @@ func allRecords(page int) string {
 		`SELECT * FROM music
 		WHERE id > ? AND ID <= ?
 		ORDER BY id DESC`)
+	defer statement.Close();
 
 	glog.Infof("Getting records from %d to %d.", minPageId, maxPageId)
 
 	rows, rowErr := statement.Query(minPageId, maxPageId)
 	checkErr(rowErr)
+	defer rows.Close()
 
 	var tracks Tracks
 	for rows.Next() {
@@ -111,6 +117,7 @@ func allRecords(page int) string {
 
 func setConf(key string, value string) {
 	statement, stmErr := musicDB.Prepare("UPDATE conf SET value = ? WHERE key = ?")
+	defer statement.Close();
 	checkErr(stmErr)
 
 	result, resultErr := statement.Exec(value, key)
@@ -120,10 +127,12 @@ func setConf(key string, value string) {
 
 func getConf(key string) string {
 	statement, stmErr := musicDB.Prepare("SELECT value FROM conf WHERE key = ?")
+	defer statement.Close();
 	checkErr(stmErr)
 
 	result, resultErr := statement.Query(key)
 	checkErr(resultErr)
+	defer result.Close()
 
 	var value string
 	var iterErr error
@@ -340,6 +349,7 @@ func syncData() {
 	for i := len(incomingData.Items)-1; i >= 0; i-- {
 		recentTrack := incomingData.Items[i]
 		checkQuery, checkQueryErr := musicDB.Prepare("SELECT * FROM music WHERE played_at = ?")
+		defer checkQuery.Close();
 		checkErr(checkQueryErr)
 
 		var track Track
@@ -430,6 +440,8 @@ func main() {
 	glog.V(2).Info("Client: ", sClientId)
 	glog.V(2).Info("Secret: ", sClientSecret)
 	glog.V(2).Info("Callback: ", sCallbackUrl)
+
+	glog.V(2).Info("PID: ", os.Getpid());
 
 	ticker := time.NewTicker(30 * time.Second)
 	go func() {
