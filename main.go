@@ -323,15 +323,18 @@ func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
 
 	spotifyResp, spotifyErr := httpClient.Do(sr)
 
-	checkErr(spotifyErr)
+	var respStruct SpotifyRecentlyPlayed
+
+	if spotifyErr != nil {
+		glog.Errorf("%s", spotifyErr);
+		return "", respStruct
+	}
 
 	data, _ := ioutil.ReadAll(spotifyResp.Body)
 
 	if spotifyResp.Body != nil {
 		defer spotifyResp.Body.Close()
 	}
-
-	var respStruct SpotifyRecentlyPlayed
 
 	jsonErr := json.Unmarshal(data, &respStruct)
 	checkErr(jsonErr)
