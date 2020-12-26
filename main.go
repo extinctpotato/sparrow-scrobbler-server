@@ -194,11 +194,15 @@ func getAllPaged(w http.ResponseWriter, r *http.Request) {
 }
 
 func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
-	formattedData, _ := getSpotifyRecentlyPlayed()
+	formattedData, _, err := getSpotifyRecentlyPlayed()
 
 	w.Header().Set("Content-Type", "application/json")
 
-	fmt.Fprintf(w, "%s\n", string(formattedData))
+	if err != nil {
+		fmt.Fprintf(w, "%s\n", err)
+	} else {
+		fmt.Fprintf(w, "%s\n", string(formattedData))
+	}
 }
 
 func spotifyAuthorize(w http.ResponseWriter, r *http.Request) {
@@ -267,7 +271,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 /* misc */
 
-func ensureToken() {
+func ensureToken() error {
 	accessValidity, avErr := strconv.ParseInt(getConf("ACCESS_VALIDITY"), 10, 64)
 	checkErr(avErr)
 
@@ -290,7 +294,11 @@ func ensureToken() {
 		sr, _ := http.NewRequest(http.MethodPost, spotifyAuthUrl, strings.NewReader(spotifyAuthPayload.Encode()))
 		sr.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-		spotifyResp, _ := httpClient.Do(sr)
+		spotifyResp, spotifyErr := httpClient.Do(sr)
+
+		if spotifyErr != nil {
+			return spotifyErr
+		}
 
 		if spotifyResp.Body != nil {
 			defer spotifyResp.Body.Close()
@@ -307,12 +315,19 @@ func ensureToken() {
 		setConf("ACCESS_VALIDITY", strconv.FormatInt(t.Unix()+spotifyRespBodyParsed.ExpiresIn, 10))
 		glog.Info("New token expires in: ", getConf("ACCESS_VALIDITY"))
 	}
+
+	return nil;
 }
 
-func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
+func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed, error) {
 	spotifyApiUrl := "https://api.spotify.com/v1/me/player/recently-played"
+	var respStruct SpotifyRecentlyPlayed
 
-	ensureToken()
+	tokenErr := ensureToken()
+
+	if tokenErr != nil {
+		return "", respStruct, tokenErr
+	}
 
 	bearerHeader := fmt.Sprintf("Bearer %s", getConf("ACCESS"))
 
@@ -323,11 +338,8 @@ func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
 
 	spotifyResp, spotifyErr := httpClient.Do(sr)
 
-	var respStruct SpotifyRecentlyPlayed
-
 	if spotifyErr != nil {
-		glog.Errorf("%s", spotifyErr);
-		return "", respStruct
+		return "", respStruct, spotifyErr
 	}
 
 	data, _ := ioutil.ReadAll(spotifyResp.Body)
@@ -342,12 +354,16 @@ func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed) {
 	formattedData, formattedDataErr := json.Marshal(respStruct.Items)
 	checkErr(formattedDataErr)
 
-	return string(formattedData), respStruct
+	return string(formattedData), respStruct, nil
 }
 
 func syncData() {
-	var incomingData SpotifyRecentlyPlayed
-	_, incomingData = getSpotifyRecentlyPlayed()
+	_, incomingData, incomingErr := getSpotifyRecentlyPlayed()
+
+	if incomingErr != nil {
+		glog.Errorf("%s", incomingErr);
+		return
+	}
 
 	for i := len(incomingData.Items)-1; i >= 0; i-- {
 		recentTrack := incomingData.Items[i]
