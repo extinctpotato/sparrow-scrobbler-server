@@ -146,6 +146,28 @@ func getConf(key string) string {
 
 /* REST-related functions */
 
+func jsonError(w http.ResponseWriter, r *http.Request, c int, d string) {
+	problem := Problem{
+		Type: "about:blank",
+		Title: http.StatusText(c),
+		Status: int64(c),
+		Detail: d,
+		Instance: string(r.URL.Path),
+	}
+
+	data, err := json.Marshal(problem)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
+	w.WriteHeader(c)
+	w.Header().Set("Content-Type", "application/problem+json")
+	fmt.Fprintf(w, string(data))
+}
+
 func insert(w http.ResponseWriter, r *http.Request) {
 	artist, artistOk := r.URL.Query()["artist"]
 	album, albumOk := r.URL.Query()["album"]
@@ -199,7 +221,7 @@ func spotifyRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
-		fmt.Fprintf(w, "%s\n", err)
+		jsonError(w, r, 500, fmt.Sprintf("%s", err))
 	} else {
 		fmt.Fprintf(w, "%s\n", string(formattedData))
 	}
