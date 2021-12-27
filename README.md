@@ -1,24 +1,4 @@
 # sparrow-scrobbler-server
 
-## Project setup
-```
-npm install
-```
-
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+This repository contains the code of an application
+that polls Spotify periodically for user's listening history and dumps it to the database.
