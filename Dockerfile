@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM golang:1.15.15-alpine
 
 COPY . /root/sparrow-scrobbler-server
 WORKDIR /root/sparrow-scrobbler-server
