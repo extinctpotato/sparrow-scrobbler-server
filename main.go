@@ -331,6 +331,8 @@ func ensureToken() error {
 		}
 
 		spotifyRespBody, srbErr := ioutil.ReadAll(spotifyResp.Body)
+		glog.V(3).Info(fmt.Sprintf("Token resp: %s", spotifyRespBody))
+
 		checkErr(srbErr)
 
 		spotifyRespBodyParsed := SpotifyAuth{}
