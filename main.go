@@ -313,7 +313,11 @@ func ensureToken() error {
 
 		httpClient := &http.Client{}
 
-		sr, _ := http.NewRequest(http.MethodPost, spotifyAuthUrl, strings.NewReader(spotifyAuthPayload.Encode()))
+		sr, _ := http.NewRequest(
+			http.MethodPost,
+			spotifyAuthUrl,
+			strings.NewReader(spotifyAuthPayload.Encode()),
+		)
 		sr.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 		spotifyResp, spotifyErr := httpClient.Do(sr)
