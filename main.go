@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/golang/glog"
+	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -37,7 +37,7 @@ type Tracks []Track
 
 func checkErr(err error) {
 	if err != nil {
-		panic(err)
+		glog.Error(err)
 	}
 }
 
@@ -50,7 +50,7 @@ func addRecord(p ...string) int64 {
 		`INSERT INTO music (artist, album, name, uri, add_time, played_at)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`)
 	checkErr(err)
-	defer statement.Close();
+	defer statement.Close()
 
 	result, resultErr := statement.Exec(p[0], p[1], p[2], p[3], p[4])
 	checkErr(resultErr)
@@ -64,7 +64,7 @@ func addRecord(p ...string) int64 {
 func idToJson(id string) string {
 	statement, stmErr := musicDB.Prepare("SELECT * FROM music WHERE id = ?")
 	checkErr(stmErr)
-	defer statement.Close();
+	defer statement.Close()
 
 	rows, rowErr := statement.Query(id)
 	checkErr(rowErr)
@@ -83,7 +83,7 @@ func idToJson(id string) string {
 
 func allRecords(page int) string {
 	maxIdStatement, _ := musicDB.Prepare("SELECT MAX(id) FROM music")
-	defer maxIdStatement.Close();
+	defer maxIdStatement.Close()
 	var maxId int
 	maxIdStatement.QueryRow().Scan(&maxId)
 
@@ -94,7 +94,7 @@ func allRecords(page int) string {
 		`SELECT * FROM music
 		WHERE id > ? AND ID <= ?
 		ORDER BY id DESC`)
-	defer statement.Close();
+	defer statement.Close()
 
 	glog.Infof("Getting records from %d to %d.", minPageId, maxPageId)
 
@@ -117,7 +117,7 @@ func allRecords(page int) string {
 
 func setConf(key string, value string) {
 	statement, stmErr := musicDB.Prepare("UPDATE conf SET value = ? WHERE key = ?")
-	defer statement.Close();
+	defer statement.Close()
 	checkErr(stmErr)
 
 	result, resultErr := statement.Exec(value, key)
@@ -127,7 +127,7 @@ func setConf(key string, value string) {
 
 func getConf(key string) string {
 	statement, stmErr := musicDB.Prepare("SELECT value FROM conf WHERE key = ?")
-	defer statement.Close();
+	defer statement.Close()
 	checkErr(stmErr)
 
 	result, resultErr := statement.Query(key)
@@ -148,10 +148,10 @@ func getConf(key string) string {
 
 func jsonError(w http.ResponseWriter, r *http.Request, c int, d string) {
 	problem := Problem{
-		Type: "about:blank",
-		Title: http.StatusText(c),
-		Status: int64(c),
-		Detail: d,
+		Type:     "about:blank",
+		Title:    http.StatusText(c),
+		Status:   int64(c),
+		Detail:   d,
 		Instance: string(r.URL.Path),
 	}
 
@@ -338,7 +338,7 @@ func ensureToken() error {
 		glog.Info("New token expires in: ", getConf("ACCESS_VALIDITY"))
 	}
 
-	return nil;
+	return nil
 }
 
 func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed, error) {
@@ -361,10 +361,12 @@ func getSpotifyRecentlyPlayed() (string, SpotifyRecentlyPlayed, error) {
 	spotifyResp, spotifyErr := httpClient.Do(sr)
 
 	if spotifyErr != nil {
+		glog.V(3).Info(spotifyErr)
 		return "", respStruct, spotifyErr
 	}
 
 	data, _ := ioutil.ReadAll(spotifyResp.Body)
+	glog.V(3).Info(fmt.Sprintf("Spotify resp: %s", data))
 
 	if spotifyResp.Body != nil {
 		defer spotifyResp.Body.Close()
@@ -383,14 +385,14 @@ func syncData() {
 	_, incomingData, incomingErr := getSpotifyRecentlyPlayed()
 
 	if incomingErr != nil {
-		glog.Errorf("%s", incomingErr);
+		glog.Errorf("%s", incomingErr)
 		return
 	}
 
-	for i := len(incomingData.Items)-1; i >= 0; i-- {
+	for i := len(incomingData.Items) - 1; i >= 0; i-- {
 		recentTrack := incomingData.Items[i]
 		checkQuery, checkQueryErr := musicDB.Prepare("SELECT * FROM music WHERE played_at = ?")
-		defer checkQuery.Close();
+		defer checkQuery.Close()
 		checkErr(checkQueryErr)
 
 		var track Track
@@ -472,17 +474,17 @@ func main() {
 	mainRouter.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html"))))
 
 	srv := &http.Server{
-		Handler: mainRouter,
-		Addr: "0.0.0.0:6789",
+		Handler:      mainRouter,
+		Addr:         "0.0.0.0:6789",
 		WriteTimeout: 15 * time.Second,
-		ReadTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 	}
 
 	glog.V(2).Info("Client: ", sClientId)
 	glog.V(2).Info("Secret: ", sClientSecret)
 	glog.V(2).Info("Callback: ", sCallbackUrl)
 
-	glog.V(2).Info("PID: ", os.Getpid());
+	glog.V(2).Info("PID: ", os.Getpid())
 
 	ticker := time.NewTicker(30 * time.Second)
 	go func() {
