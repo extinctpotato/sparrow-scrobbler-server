@@ -331,7 +331,10 @@ func ensureToken() error {
 		}
 
 		spotifyRespBody, srbErr := ioutil.ReadAll(spotifyResp.Body)
-		glog.V(3).Info(fmt.Sprintf("Token resp: %s", spotifyRespBody))
+
+		if spotifyResp.StatusCode > 299 {
+			glog.V(3).Info(fmt.Sprintf("Error in token resp: %s", spotifyRespBody))
+		}
 
 		checkErr(srbErr)
 
